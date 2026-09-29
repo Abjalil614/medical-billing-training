@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medical Billing Training Software</title>
+ 
+<style>
+body{
+font-family:Arial, sans-serif;
+background:#f4f6f9;
+margin:0;
+}
+ 
+.header{
+background:#1f4e79;
+color:white;
+padding:15px;
+text-align:center;
+}
+ 
+.container{
+width:95%;
+margin:auto;
+padding:20px;
+}
+ 
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:15px;
+margin-bottom:20px;
+}
+ 
+.card{
+background:white;
+padding:15px;
+border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,.15);
+text-align:center;
+}
+ 
+.card h2{
+color:#1f4e79;
+}
+ 
+.section{
+background:white;
+padding:15px;
+margin-top:20px;
+border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+ 
+input, select{
+padding:8px;
+margin:5px;
+}
+ 
+button{
+background:#1f4e79;
+color:white;
+border:none;
+padding:10px 15px;
+cursor:pointer;
+border-radius:5px;
+}
+ 
+button:hover{
+background:#153652;
+}
+ 
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+ 
+th, td{
+border:1px solid #ddd;
+padding:8px;
+text-align:left;
+}
+ 
+th{
+background:#1f4e79;
+color:white;
+}
+ 
+.denied{
+color:red;
+font-weight:bold;
+}
+ 
+.paid{
+color:green;
+font-weight:bold;
+}
+ 
+.pending{
+color:orange;
+font-weight:bold;
+}
+</style>
+</head>
+ 
+<body>
+ 
+<div class="header">
+<h1>Medical Billing Training Software</h1>
+</div>
+ 
+<div class="container">
+ 
+<div class="cards">
+<div class="card">
+<h2 id="patientsCount">0</h2>
+Patients
+</div>
+ 
+<div class="card">
+<h2 id="claimsCount">0</h2>
+Claims
+</div>
+ 
+<div class="card">
+<h2 id="totalCharges">$0</h2>
+Charges
+</div>
+ 
+<div class="card">
+<h2 id="totalPayments">$0</h2>
+Payments
+</div>
+</div>
+ 
+<!-- PATIENTS -->
+ 
+<div class="section">
+<h2>Add Patient</h2>
+ 
+<input type="text" id="patientName" placeholder="Patient Name">
+<input type="text" id="insurance" placeholder="Insurance">
+<button onclick="addPatient()">Add Patient</button>
+ 
+<table id="patientTable">
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Insurance</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+ 
+<!-- CLAIMS -->
+ 
+<div class="section">
+<h2>Charge Entry / Claims</h2>
+ 
+<select id="claimPatient"></select>
+ 
+<input type="date" id="dos">
+ 
+<input type="text" id="cpt" placeholder="CPT Code">
+ 
+<input type="number" id="units" placeholder="Units">
+ 
+<input type="number" id="charge" placeholder="Charge">
+ 
+<select id="status">
+<option>Pending</option>
+<option>Denied</option>
+<option>Paid</option>
+</select>
+ 
+<button onclick="addClaim()">Create Claim</button>
+ 
+<table id="claimTable">
+<thead>
+<tr>
+<th>Claim ID</th>
+<th>Patient</th>
+<th>DOS</th>
+<th>CPT</th>
+<th>Units</th>
+<th>Charge</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+ 
+<!-- PAYMENTS -->
+ 
+<div class="section">
+<h2>Payment Posting</h2>
+ 
+<input type="number" id="payClaimId" placeholder="Claim ID">
+ 
+<input type="number" id="paymentAmount" placeholder="Payment">
+ 
+<button onclick="postPayment()">Post Payment</button>
+ 
+<table id="paymentTable">
+<thead>
+<tr>
+<th>Claim ID</th>
+<th>Amount Paid</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+ 
+<!-- AR -->
+ 
+<div class="section">
+<h2>Accounts Receivable</h2>
+ 
+<table id="arTable">
+<thead>
+<tr>
+<th>Claim ID</th>
+<th>Patient</th>
+<th>Balance</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+ 
+</div>
+ 
+<script>
+ 
+let patients = JSON.parse(localStorage.getItem("patients")) || [];
+let claims = JSON.parse(localStorage.getItem("claims")) || [];
+let payments = JSON.parse(localStorage.getItem("payments")) || [];
+ 
+function saveData(){
+localStorage.setItem("patients",JSON.stringify(patients));
+localStorage.setItem("claims",JSON.stringify(claims));
+localStorage.setItem("payments",JSON.stringify(payments));
+}
+ 
+function addPatient(){
+ 
+let name = document.getElementById("patientName").value;
+let insurance = document.getElementById("insurance").value;
+ 
+if(name==="") return;
+ 
+let patient = {
+id: patients.length + 1,
+name:name,
+insurance:insurance
+};
+ 
+patients.push(patient);
+saveData();
+renderAll();
+ 
+document.getElementById("patientName").value="";
+document.getElementById("insurance").value="";
+}
+ 
+function addClaim(){
+ 
+let patientId =
+parseInt(document.getElementById("claimPatient").value);
+ 
+if(!patientId) return;
+ 
+let claim = {
+id: claims.length + 1001,
+patientId:patientId,
+dos:document.getElementById("dos").value,
+cpt:document.getElementById("cpt").value,
+units:document.getElementById("units").value,
+charge:Number(document.getElementById("charge").value),
+status:document.getElementById("status").value
+};
+ 
+claims.push(claim);
+ 
+saveData();
+renderAll();
+}
+ 
+function postPayment(){
+ 
+let claimId =
+parseInt(document.getElementById("payClaimId").value);
+ 
+let amount =
+Number(document.getElementById("paymentAmount").value);
+ 
+payments.push({
+claimId:claimId,
+amount:amount
+});
+ 
+let claim = claims.find(c=>c.id===claimId);
+ 
+if(claim){
+claim.status="Paid";
+}
+ 
+saveData();
+renderAll();
+}
+ 
+function renderPatients(){
+ 
+let tbody =
+document.querySelector("#patientTable tbody");
+ 
+let select =
+document.getElementById("claimPatient");
+ 
+tbody.innerHTML="";
+select.innerHTML="<option value=''>Select Patient</option>";
+ 
+patients.forEach(p=>{
+ 
+tbody.innerHTML += `
+<tr>
+<td>${p.id}</td>
+<td>${p.name}</td>
+<td>${p.insurance}</td>
+</tr>`;
+ 
+select.innerHTML += `
+<option value="${p.id}">
+${p.name}
+</option>`;
+});
+}
+ 
+function renderClaims(){
+ 
+let tbody =
+document.querySelector("#claimTable tbody");
+ 
+tbody.innerHTML="";
+ 
+claims.forEach(c=>{
+ 
+let patient =
+patients.find(p=>p.id===c.patientId);
+ 
+let cls="pending";
+ 
+if(c.status==="Denied") cls="denied";
+if(c.status==="Paid") cls="paid";
+ 
+tbody.innerHTML += `
+<tr>
+<td>${c.id}</td>
+<td>${patient ? patient.name : ""}</td>
+<td>${c.dos}</td>
+<td>${c.cpt}</td>
+<td>${c.units}</td>
+<td>$${c.charge}</td>
+<td class="${cls}">${c.status}</td>
+</tr>
+`;
+});
+}
+ 
+function renderPayments(){
+ 
+let tbody=
+document.querySelector("#paymentTable tbody");
+ 
+tbody.innerHTML="";
+ 
+payments.forEach(p=>{
+ 
+tbody.innerHTML += `
+<tr>
+<td>${p.claimId}</td>
+<td>$${p.amount}</td>
+</tr>`;
+});
+}
+ 
+function renderAR(){
+ 
+let tbody=
+document.querySelector("#arTable tbody");
+ 
+tbody.innerHTML="";
+ 
+claims.forEach(claim=>{
+ 
+let paid =
+payments
+.filter(x=>x.claimId===claim.id)
+.reduce((a,b)=>a+b.amount,0);
+ 
+let balance = claim.charge - paid;
+ 
+let patient =
+patients.find(p=>p.id===claim.patientId);
+ 
+tbody.innerHTML += `
+<tr>
+<td>${claim.id}</td>
+<td>${patient ? patient.name : ""}</td>
+<td>$${balance}</td>
+<td>${claim.status}</td>
+</tr>`;
+});
+}
+ 
+function updateDashboard(){
+ 
+document.getElementById("patientsCount")
+.innerText=patients.length;
+ 
+document.getElementById("claimsCount")
+.innerText=claims.length;
+ 
+let charges =
+claims.reduce((a,b)=>a+b.charge,0);
+ 
+let pay =
+payments.reduce((a,b)=>a+b.amount,0);
+ 
+document.getElementById("totalCharges")
+.innerText="$"+charges.toFixed(2);
+ 
+document.getElementById("totalPayments")
+.innerText="$"+pay.toFixed(2);
+}
+ 
+function renderAll(){
+ 
+renderPatients();
+renderClaims();
+renderPayments();
+renderAR();
+updateDashboard();
+ 
+}
+ 
+renderAll();
+ 
+</script>
+ 
+</body>
+</html>
